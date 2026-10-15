@@ -857,6 +857,91 @@ class TestBulkPublishIdPreservation:
 
 
 # =============================================================================
+# Bulk Import Per-Item Operation Status Tests
+# =============================================================================
+
+
+@pytest.mark.usefixtures("bulk_publish_flags")
+class TestBulkPublishOperationStatus:
+    """HTTP 200 from bulkImportDefinitions does not imply that each item succeeded."""
+
+    @pytest.mark.parametrize("operation_status", ["Failed", "SucceededDespiteFailures", "UnexpectedStatus"])
+    def test_unsuccessful_item_status_fails_deployment(
+        self, mock_endpoint, temp_workspace_dir, operation_status, caplog
+    ):
+        create_test_item_dir(temp_workspace_dir, None, "BrokenNotebook", "Notebook", "nb-id-001")
+        set_bulk_response(
+            mock_endpoint,
+            [
+                {
+                    "itemType": "Notebook",
+                    "itemDisplayName": "BrokenNotebook",
+                    "itemId": "nb-guid-001",
+                    "operationType": "Update",
+                    "operationStatus": operation_status,
+                }
+            ],
+        )
+
+        with patched_workspace(mock_endpoint, temp_workspace_dir) as workspace:
+            with pytest.raises(FailedPublishedItemStatusError, match=operation_status) as exc:
+                publish.publish_all_items(workspace)
+
+        assert "Notebook: BrokenNotebook" in str(exc.value)
+        assert "Published items (update)" not in caplog.text
+
+    def test_mixed_response_collects_details_and_raises(self, mock_endpoint, temp_workspace_dir):
+        create_test_item_dir(temp_workspace_dir, None, "GoodNotebook", "Notebook", "nb-id-001")
+        create_test_item_dir(temp_workspace_dir, None, "BrokenNotebook", "Notebook", "nb-id-002")
+        set_bulk_response(
+            mock_endpoint,
+            [
+                {
+                    "itemType": "Notebook",
+                    "itemDisplayName": "GoodNotebook",
+                    "itemId": "nb-guid-001",
+                    "operationType": "Create",
+                    "operationStatus": "Succeeded",
+                },
+                {
+                    "itemType": "Notebook",
+                    "itemDisplayName": "BrokenNotebook",
+                    "itemId": "nb-guid-002",
+                    "operationType": "Update",
+                    "operationStatus": "Failed",
+                },
+            ],
+        )
+
+        with extra_flags(FeatureFlag.ENABLE_RESPONSE_COLLECTION):
+            with patched_workspace(mock_endpoint, temp_workspace_dir) as workspace:
+                with pytest.raises(FailedPublishedItemStatusError, match="BrokenNotebook"):
+                    publish.publish_all_items(workspace)
+
+                assert workspace.responses["Notebook"]["GoodNotebook"]["body"]["operationStatus"] == "Succeeded"
+                assert workspace.responses["Notebook"]["BrokenNotebook"]["body"]["operationStatus"] == "Failed"
+
+    def test_explicit_success_status_remains_successful(self, mock_endpoint, temp_workspace_dir):
+        create_test_item_dir(temp_workspace_dir, None, "GoodNotebook", "Notebook", "nb-id-001")
+        set_bulk_response(
+            mock_endpoint,
+            [
+                {
+                    "itemType": "Notebook",
+                    "itemDisplayName": "GoodNotebook",
+                    "itemId": "nb-guid-001",
+                    "operationType": "Create",
+                    "operationStatus": "Succeeded",
+                }
+            ],
+        )
+
+        with patched_workspace(mock_endpoint, temp_workspace_dir) as workspace:
+            publish.publish_all_items(workspace)
+            assert workspace.repository_items["Notebook"]["GoodNotebook"].guid == "nb-guid-001"
+
+
+# =============================================================================
 # Bulk Publish Response Collection Tests
 # =============================================================================
 
