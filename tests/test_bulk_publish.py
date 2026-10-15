@@ -883,7 +883,7 @@ class TestBulkPublishOperationStatus:
             ],
         )
 
-        with patched_workspace(mock_endpoint, temp_workspace_dir) as workspace:
+        with caplog.at_level("INFO"), patched_workspace(mock_endpoint, temp_workspace_dir) as workspace:
             with pytest.raises(FailedPublishedItemStatusError, match=operation_status) as exc:
                 publish.publish_all_items(workspace)
 
