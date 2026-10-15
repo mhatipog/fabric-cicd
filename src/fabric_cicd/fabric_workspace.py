@@ -934,6 +934,7 @@ class FabricWorkspace:
         details = response.get("body", {}).get("importItemDefinitionsDetails", [])
         created = []
         updated = []
+        unsuccessful = []
 
         for d in details:
             item_type = d["itemType"]
@@ -954,9 +955,16 @@ class FabricWorkspace:
                     "status_code": response.get("status_code"),
                 }
 
-            # Collect logging info
-            op = d.get("operationType")
+            # A successful HTTP response can still contain failed or partially failed imports.
+            # Older responses without operationStatus retain the previous behavior.
+            status = d.get("operationStatus", "Succeeded")
             label = f"{item_type}: {item_name}"
+            if status != "Succeeded":
+                unsuccessful.append(f"{label} ({status})")
+                continue
+
+            # Only report successful item operations as published.
+            op = d.get("operationType")
             if op == "Create":
                 created.append(label)
             elif op == "Update":
@@ -969,6 +977,9 @@ class FabricWorkspace:
             logger.info(f"{constants.INDENT}Published items (update): {sorted(updated)}")
         if skipped_items:
             logger.info(f"{constants.INDENT}Skipped items: {sorted(skipped_items)}")
+        if unsuccessful:
+            msg = f"Bulk import returned unsuccessful item operation(s): {', '.join(sorted(unsuccessful))}"
+            raise FailedPublishedItemStatusError(msg, logger)
 
     def _prepare_bulk_item_parts(self, item: "Item", publisher: object) -> list[dict]:
         """
