@@ -413,6 +413,10 @@ def unpublish_all_orphan_items(
     fabric_workspace_obj._refresh_repository_items()
     log_header(logger, "Unpublishing Orphaned Items")
 
+    # Track the originating folders of items selected for deletion. Selective
+    # unpublish must not sweep independently managed empty workspace folders.
+    selected_folder_ids: set[str] = set()
+
     # Build unpublish order based on reversed publish order, scope, and feature flags
     for item_type in items.ItemPublisher.get_item_types_to_unpublish(fabric_workspace_obj):
         to_delete_list = items.ItemPublisher.get_orphaned_items(
@@ -430,12 +434,21 @@ def unpublish_all_orphan_items(
             to_delete_list = publisher.get_unpublish_order(to_delete_list)
 
         for item_name in to_delete_list:
+            folder_id = fabric_workspace_obj.deployed_items[item_type][item_name].folder_id
+            if folder_id:
+                selected_folder_ids.add(folder_id)
             fabric_workspace_obj._unpublish_item(item_name=item_name, item_type=item_type)
 
     fabric_workspace_obj._refresh_deployed_items()
     fabric_workspace_obj._refresh_deployed_folders()
     if FeatureFlag.DISABLE_WORKSPACE_FOLDER_PUBLISH.value not in constants.FEATURE_FLAG:
-        fabric_workspace_obj._unpublish_folders()
+        if item_name_exclude_regex is None and items_to_include is None:
+            # Preserve the existing full-workspace empty-folder cleanup behavior.
+            fabric_workspace_obj._unpublish_folders()
+        elif selected_folder_ids:
+            # Scope cleanup to the folders emptied by selected items and their
+            # ancestors; a failed item delete remains protected by the refresh.
+            fabric_workspace_obj._unpublish_folders(folder_ids_to_check=selected_folder_ids)
 
     # Return response data if feature flag is enabled and responses were collected
     return (
