@@ -295,7 +295,9 @@ def test_publish_filters_do_not_leak_between_calls(mock_endpoint, temp_workspace
     with (
         patch("fabric_cicd.fabric_workspace.FabricEndpoint", return_value=mock_endpoint),
         patch.object(FabricWorkspace, "_refresh_deployed_items", new=lambda self: setattr(self, "deployed_items", {})),
-        patch.object(FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})),
+        patch.object(
+            FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
+        ),
     ):
         workspace = FabricWorkspace(
             workspace_id="12345678-1234-5678-abcd-1234567890ab",
@@ -330,7 +332,9 @@ def test_folder_filters_do_not_leak_when_switching_selection(mock_endpoint, temp
     with (
         patch("fabric_cicd.fabric_workspace.FabricEndpoint", return_value=mock_endpoint),
         patch.object(FabricWorkspace, "_refresh_deployed_items", new=lambda self: setattr(self, "deployed_items", {})),
-        patch.object(FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})),
+        patch.object(
+            FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
+        ),
     ):
         workspace = FabricWorkspace(
             workspace_id="12345678-1234-5678-abcd-1234567890ab",
