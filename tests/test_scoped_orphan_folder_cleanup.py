@@ -48,9 +48,12 @@ def make_workspace(folders, deployed, repository=None, fail_item_delete=False):
     return ws
 
 
-def run_unpublish(ws, exclude=None):
-    with patch.object(constants, "FEATURE_FLAG", set()):
-        unpublish_all_orphan_items(ws, item_name_exclude_regex=exclude)
+def run_unpublish(ws, exclude=None, include=None):
+    flags = set()
+    if include is not None:
+        flags = {"enable_experimental_features", "enable_items_to_include"}
+    with patch.object(constants, "FEATURE_FLAG", flags):
+        unpublish_all_orphan_items(ws, item_name_exclude_regex=exclude, items_to_include=include)
     return [url.removeprefix(ws.base_api_url) for url in ws.endpoint.calls]
 
 
@@ -121,3 +124,24 @@ def test_selected_nested_folder_with_remaining_item_remains_protected():
         },
     )
     assert run_unpublish(ws, exclude=r"^Keep$") == ["/items/delete-id"]
+
+
+def test_explicit_item_selection_only_cleans_selected_item_folder():
+    ws = make_workspace(
+        {"/Selected": "selected", "/IndependentEmpty": "independent"},
+        {
+            "DeleteMe": SimpleNamespace(folder_id="selected", guid="delete-id"),
+            "IgnoreMe": SimpleNamespace(folder_id="", guid="other-id"),
+        },
+    )
+    assert run_unpublish(ws, include=["DeleteMe.Notebook"]) == [
+        "/items/delete-id", "/folders/selected",
+    ]
+
+
+def test_empty_item_selection_never_cleans_workspace_folders():
+    ws = make_workspace(
+        {"/IndependentEmpty": "independent"},
+        {"IgnoreMe": SimpleNamespace(folder_id="", guid="other-id")},
+    )
+    assert run_unpublish(ws, include=[]) == []
