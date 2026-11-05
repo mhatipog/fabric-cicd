@@ -623,7 +623,7 @@ def test_unpublish_feature_flag_warnings(mock_endpoint, temp_workspace_dir, capl
         patch.object(
             FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
         ),
-        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
         caplog.at_level(logging.WARNING),
     ):
         workspace = FabricWorkspace(
@@ -675,7 +675,7 @@ def test_unpublish_with_feature_flags_enabled(mock_endpoint, temp_workspace_dir,
             patch.object(
                 FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
             ),
-            patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+            patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
             patch.object(FabricWorkspace, "_unpublish_item", new=lambda _, __, ___: None),
             caplog.at_level(logging.WARNING),
         ):
@@ -723,7 +723,7 @@ def test_unpublish_graph_model_with_feature_flag_enabled(mock_endpoint, temp_wor
             patch.object(
                 FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
             ),
-            patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+            patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
             patch.object(FabricWorkspace, "_unpublish_item", new=track_unpublish),
             caplog.at_level(logging.WARNING),
         ):
@@ -776,7 +776,7 @@ def test_unpublish_orphan_item_is_deleted(mock_endpoint, temp_workspace_dir):
         patch.object(
             FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
         ),
-        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
         patch.object(FabricWorkspace, "_unpublish_item", new=track_unpublish),
     ):
         workspace = FabricWorkspace(
@@ -825,7 +825,7 @@ def test_unpublish_orphan_excluded_by_regex(mock_endpoint, temp_workspace_dir):
         patch.object(
             FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
         ),
-        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
         patch.object(FabricWorkspace, "_unpublish_item", new=track_unpublish),
     ):
         workspace = FabricWorkspace(
@@ -875,7 +875,7 @@ def test_unpublish_orphan_filtered_by_items_to_include(mock_endpoint, temp_works
         patch.object(
             FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
         ),
-        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
         patch.object(FabricWorkspace, "_unpublish_item", new=track_unpublish),
     ):
         workspace = FabricWorkspace(
@@ -917,7 +917,7 @@ def test_unpublish_no_orphans_no_deletion(mock_endpoint, temp_workspace_dir):
         patch.object(
             FabricWorkspace, "_refresh_deployed_folders", new=lambda self: setattr(self, "deployed_folders", {})
         ),
-        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _: None),
+        patch.object(FabricWorkspace, "_unpublish_folders", new=lambda _self, **_kwargs: None),
         patch.object(FabricWorkspace, "_unpublish_item", new=track_unpublish),
     ):
         workspace = FabricWorkspace(
