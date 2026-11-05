@@ -1292,8 +1292,8 @@ class FabricWorkspace:
 
         logger.info(f"{constants.INDENT}Published")
 
-    def _unpublish_folders(self) -> None:
-        """Unpublishes all empty folders in workspace."""
+    def _unpublish_folders(self, folder_ids_to_check: Optional[set[str]] = None) -> None:
+        """Remove empty folders, optionally restricted to selected item ancestry."""
         # Sort folders by the number of '/' in their paths (descending order)
         sorted_folder_ids = [
             self.deployed_folders[key]
@@ -1313,6 +1313,17 @@ class FabricWorkspace:
 
         # Create a reversed mapping for folder_id to folder_path lookups
         folder_id_to_path_mapping = {folder_id: folder_path for folder_path, folder_id in self.deployed_folders.items()}
+
+        eligible_folder_ids = None
+        if folder_ids_to_check is not None:
+            eligible_folder_ids = set()
+            for selected_folder_id in folder_ids_to_check:
+                folder_path = folder_id_to_path_mapping.get(selected_folder_id)
+                while folder_path and folder_path != "/":
+                    current_id = self.deployed_folders.get(folder_path)
+                    if current_id:
+                        eligible_folder_ids.add(current_id)
+                    folder_path = folder_path.rsplit("/", 1)[0] or "/"
 
         # Create a copy of the unorphaned_folders set to safely iterate while modifying the original set
         folder_lookup = unorphaned_folders.copy()
@@ -1343,8 +1354,10 @@ class FabricWorkspace:
         # Pop all folders
 
         for folder_id in sorted_folder_ids:
-            if folder_id not in unorphaned_folders:
-                # Folder deployed, but not in repository
+            if folder_id not in unorphaned_folders and (
+                eligible_folder_ids is None or folder_id in eligible_folder_ids
+            ):
+                # Empty folder is eligible for cleanup
 
                 # Delete the folder from the workspace
                 # https://learn.microsoft.com/en-us/rest/api/fabric/core/folders/delete-folder
