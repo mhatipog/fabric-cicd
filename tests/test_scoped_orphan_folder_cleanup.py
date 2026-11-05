@@ -16,11 +16,12 @@ class RecordingEndpoint:
         self.calls = []
         self.fail_item_delete = fail_item_delete
 
-    def invoke(self, *, method, url, **kwargs):
+    def invoke(self, *, method, url, **_kwargs):
         assert method == "DELETE"
         self.calls.append(url)
         if self.fail_item_delete and "/items/" in url:
-            raise RuntimeError("synthetic delete failure")
+            msg = "synthetic delete failure"
+            raise RuntimeError(msg)
         return {"status_code": 204, "body": {}}
 
 
