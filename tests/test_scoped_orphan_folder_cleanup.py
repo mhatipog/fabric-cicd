@@ -136,7 +136,8 @@ def test_explicit_item_selection_only_cleans_selected_item_folder():
         },
     )
     assert run_unpublish(ws, include=["DeleteMe.Notebook"]) == [
-        "/items/delete-id", "/folders/selected",
+        "/items/delete-id",
+        "/folders/selected",
     ]
 
 
